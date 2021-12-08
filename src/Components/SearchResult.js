@@ -1,51 +1,25 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useDispatch } from "react-redux";
 import { useSelector } from "react-redux";
-import { add_friend, temp_Chat_Id } from "../redux/action/chat";
-import { deactivate_search_result } from "../redux/action/search";
-import { DEACTIVATE_SEARCH_RESULT } from "../redux/action/types";
+import { useHistory } from "react-router";
+import { toast } from "react-toastify";
+import { add_friend } from "../redux/action/addFriend";
+import { chat_id_action } from "../redux/action/chatIdAction";
+import { message_action } from "../redux/action/messageAction";
+import { message_with_action } from "../redux/action/messageWithAction";
+import { clear_search } from "../redux/action/searchAction";
 
 const SearchResult = () => {
-  const [isActive, setIsactive] = useState(false);
-  const data = useSelector((data) => data);
-  const dispatch = useDispatch();
   const token = localStorage.getItem("token");
-
-  useEffect(() => {
-    setIsactive(data.search.isActive);
-  }, [data.search.isActive]);
+  const store = useSelector((data) => data);
+  const dispatch = useDispatch();
 
   async function handleClick() {
-    if (data.chat.friend.length === 0) {
-      const id = data.search.id;
-      const chatId = await setFriend(id);
-      const obj = {
-        name: data.search.name,
-        id: chatId,
-        phone: data.search.phone,
-      };
-      dispatch(temp_Chat_Id(chatId));
-      dispatch(add_friend(obj));
-      dispatch(deactivate_search_result(DEACTIVATE_SEARCH_RESULT));
-    } else if (
-      data.chat.friend.find((friend) => friend.name === data.search.name)
-    ) {
-      dispatch(deactivate_search_result(DEACTIVATE_SEARCH_RESULT));
-      return;
-    } else {
-      const id = data.search.id;
-      setFriend(id);
-      const obj = {
-        name: data.search.name,
-        id: data.search.id,
-        phone: data.search.phone,
-      };
-      dispatch(add_friend(obj));
-      dispatch(deactivate_search_result(DEACTIVATE_SEARCH_RESULT));
-    }
+    setChat(store.searchReducer.searchFriendId);
+    dispatch(clear_search());
   }
 
-  async function setFriend(id) {
+  async function setChat(id) {
     const body = JSON.stringify({
       friendId: id,
     });
@@ -61,19 +35,31 @@ const SearchResult = () => {
         body,
       }
     );
-    console.log(resp);
+
     const respData = await resp.json();
-    console.log(respData);
-    return respData.chat._id;
+
+    if (respData.status !== 201) {
+      return toast.error("Chat is already exists!");
+    }
+
+    const obj = {
+      chatId: respData.chat._id,
+      friendName: store.searchReducer.searchName,
+      friendPhone: store.searchReducer.phone,
+    };
+    dispatch(add_friend(obj));
+    return obj;
   }
 
   return (
     <div
       onClick={() => handleClick()}
-      className={isActive ? "search-result-active" : "search-result-hidden"}
+      className={
+        store.searchReducer.isHidden ? "search-result hidden" : "search-result "
+      }
     >
-      <h3>{data.search.name}</h3>
-      <h3>{data.search.phone}</h3>
+      <h3>{store.searchReducer.searchName}</h3>
+      <h3>{store.searchReducer.phone}</h3>
     </div>
   );
 };

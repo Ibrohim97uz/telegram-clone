@@ -1,24 +1,33 @@
-import React from "react";
+import React, { useState } from "react";
 import { useRef } from "react";
 import { useDispatch } from "react-redux";
 import { useHistory } from "react-router-dom";
-import { load_message, setter_friend } from "../redux/action/chat";
-import { LOAD_MESSAGES } from "../redux/action/types";
+import { toast } from "react-toastify";
+import { user_action } from "../redux/action/userAction";
 
-const Login = () => {
-  const userNameRef = useRef();
+const Register = () => {
   const passwordRef = useRef();
+  const [userName, setUserName] = useState("");
   const dispatch = useDispatch();
+
   const history = useHistory();
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (passwordRef.current.value === "" || userName === "") {
+      return toast.warning("Please fill all the fields");
+    }
+
     getLogin("https://telegram-alisherjon-api.herokuapp.com/auth");
+  };
+
+  const handleChangeUserName = (value) => {
+    setUserName(value);
   };
 
   async function getLogin(url) {
     const body = JSON.stringify({
-      username: userNameRef.current.value,
+      username: userName,
       password: passwordRef.current.value,
     });
 
@@ -29,57 +38,51 @@ const Login = () => {
       method: "POST",
       body,
     });
-    // console.log(resp);
+
     const respData = await resp.json();
-    if (respData.token) {
-      // console.log(respData);
-      localStorage.setItem("token", respData.token);
-      const userInfo = await getUserInfo(respData.token);
-      // console.log(userInfo);
-      localStorage.setItem("userId", userInfo._id);
-      dispatch(setter_friend(userInfo.chats));
-      history.push("/Otish");
+
+    if (!resp.ok) {
+      return toast.error("User not found!");
     }
-  }
 
-  async function getUserInfo(token) {
-    const resp = await fetch(
-      "https://telegram-alisherjon-api.herokuapp.com/users/",
-      {
-        headers: {
-          "Content-Type": "application/json",
-          authorization: `Bearer ${token}`,
-        },
-        method: "GET",
-      }
-    );
-
-    const respData = await resp.json();
-    console.log(respData);
-    return respData.user;
+    localStorage.setItem("token", respData.token);
+    history.push("/chat");
   }
 
   return (
-    <div className="login">
-      <form onSubmit={handleSubmit}>
-        <div className="form1">
-          <h2 className="title">Log in</h2>
-          <div className="form">
+    <div className="register-page">
+      <form className="register-form" onSubmit={handleSubmit}>
+        <h2 className="title">Login</h2>
+        <div className="form">
+          <div className="check-username">
             <label htmlFor="username">Username:</label>
             <br />
-            <input type="username" id="username" ref={userNameRef} />
+            <input
+              onChange={(e) => handleChangeUserName(e.target.value)}
+              type="username"
+              id="username"
+              value={userName}
+            />
             <br /> <br />
-            <label htmlFor="password">Password:</label>
-            <br />
-            <input type="password" id="password" ref={passwordRef} />
           </div>
-          <div className="btnn">
-            <button type="submit">Submit</button>
-          </div>
+          <label htmlFor="password">Password:</label>
+          <br />
+          <input
+            className="w-100"
+            type="password"
+            id="password"
+            ref={passwordRef}
+          />
+        </div>
+
+        <div className="register-button w-100">
+          <button className="w-100 " type="submit">
+            Log in
+          </button>
         </div>
       </form>
     </div>
   );
 };
 
-export default Login;
+export default Register;
